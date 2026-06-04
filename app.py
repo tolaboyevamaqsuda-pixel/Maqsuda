@@ -1,62 +1,33 @@
 import streamlit as st
 import pandas as pd
-import os
 
-st.set_page_config(page_title="CSV Viewer", layout="wide")
+st.title("🧠 Tibbiy Qidiruv Tizimi")
 
-st.title("📊 Tibbiyot CSV Viewer")
+# --- DATA YUKLASH ---
+@st.cache_data
+def load_data():
+    df = pd.read_csv("Tibbiyot.csv")
 
-# --- FUNKSIYA ---
-def load_csv(file_path):
-    if not os.path.exists(file_path):
-        return None
+    if "Matn" not in df.columns:
+        return pd.DataFrame(columns=["Matn"])
 
-    df = pd.read_csv(file_path)
+    return df
 
-    if 'Matn' not in df.columns:
-        return None
+df = load_data()
 
-    clean_texts = []
+# --- QIDIRUV ---
+query = st.text_input("Kasallik yoki so‘zni kiriting:")
 
-    for row in df['Matn']:
-        val = str(row).strip()
+if query:
+    # kichik-katta harf farq qilmasin
+    results = df[df["Matn"].str.contains(query, case=False, na=False)]
 
-        if val.lower() == 'nan' or len(val) < 3:
-            continue
+    st.subheader("📌 Natijalar:")
 
-        clean_texts.append(val)
-
-    return clean_texts
-
-
-# --- FILE YUKLASH ---
-uploaded_file = st.file_uploader("CSV fayl yukla", type=["csv"])
-
-data = None
-
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-
-    if 'Matn' not in df.columns:
-        st.error("CSV ichida 'Matn' ustuni topilmadi!")
+    if len(results) == 0:
+        st.warning("Hech narsa topilmadi ❌")
     else:
-        data = []
-
-        for row in df['Matn']:
-            val = str(row).strip()
-            if val.lower() == 'nan' or len(val) < 3:
-                continue
-            data.append(val)
-
-        st.success(f"{len(data)} ta matn yuklandi!")
-
-        # --- KO‘RSATISH ---
-        st.subheader("📌 Birinchi 10 ta ma'lumot")
-        st.write(data[:10])
-
-        # --- FULL TABLE ---
-        st.subheader("📋 Barcha ma'lumotlar")
-        st.dataframe(pd.DataFrame(data, columns=["Matn"]))
-
+        st.success(f"{len(results)} ta natija topildi ✅")
+        st.dataframe(results)
 else:
-    st.info("CSV fayl yuklang")
+    st.info("Qidiruv uchun so‘z kiriting")
